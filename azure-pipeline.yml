@@ -1,0 +1,75 @@
+name: $(Build.SourceBranch)-$(date:yyyyMMdd)$(rev:.r)
+# Pipeline triggers on any branch and tag
+trigger:
+  branches:
+    include:
+      - master
+      - staging
+      - qa
+  tags:
+    include:
+      - '*'
+
+# Pipeline will be run on this base image
+pool:
+  vmImage: 'ubuntu-latest'
+
+# Variables global to this pipeline
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables
+variables:
+  # Variables defined in Pipelines->Library->Variable Groups in your project in
+  # Azure Pipelines
+  - group: Hemmeligheter
+  # Variables defined here
+  - name: fullSha
+    value: '$(Build.SourceVersion)'
+  - name: imageName
+    value: 'eu.gcr.io/prod-bip/ssb/tidsbruk/common-survey-export'
+  - name: repoName
+    value: 'prod-bip/ssb/tidsbruk/common-survey-export'
+  - name: gcrServiceConnection
+    value: 'gcrServiceConnection-Tidsbruksprosjektet'
+  - name: sonarCloud
+    value: 'bipSonarCloud-Tidsbruksprosjektet'
+
+  - name: imageTagBeforeVulnerabilityScan
+    value: 'imagescan-$(Build.SourceBranchName)-$(fullSha)'
+  - name: imageTagAfterVulnerabilityScan
+    value: $(Build.SourceBranchName)-$(fullSha)
+  - name:  MAVEN_CACHE_FOLDER
+    value: $(Pipeline.Workspace)/.m2/repository
+  - name: MAVEN_OPTS
+    value: '-Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
+
+
+resources:
+  repositories:
+    - repository: templates
+      type: github
+      name: statisticsnorway/azure-pipelines-templates
+      ref: refs/tags/1.1.26
+      endpoint: github-Tidsbruksprosjektet
+
+# Job which runs mvn test and verify, Sonar Analysis (if branch is master), mvn install,
+# builds Docker image, pushes this to GCR and checks for any image vulnerabilities
+jobs:
+  - template: complete-builds/job-test-coverage-build-gcr.yml@templates
+    parameters:
+      project: timeuse
+      imageName: $(imageName)
+      repoName: $(repoName)
+      artifactName: common-survey-export
+      mavenContainer: maven:3-openjdk-16
+      checkStyleRunAnalysis: false
+      gcrServiceConnection: $(gcrServiceConnection)
+      sonarCloud: $(sonarCloud)
+
+
+  # Job which pulls the Docker image with the correct tag (image-scan-tag) from GCR, tags this
+  # with the git tag, and pushes that back to GCR.
+  # The job triggers when any tag was committed to GitHub, which means all tags in
+  # the code repo are propagated to the corresponding (newly built) image in GCR.
+  - template: docker/docker-tag-for-production.yml@templates
+    parameters:
+      tagToTag: ${{ variables.imageName }}
+      gcrImageName: ${{ variables.imageName }}
