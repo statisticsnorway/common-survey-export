@@ -16,6 +16,8 @@ management:
       exposure.include: health, metrics, prometheus
     enable-by-default: true
 
+environment: staging
 storage:
-  bucket:
-    name: test-bucket-common-dsr
+  forbruk:
+    bucket:
+      name: ssb-staging-forbruk-survey-data-kilde
