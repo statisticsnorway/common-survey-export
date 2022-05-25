@@ -39,9 +39,7 @@ public class ExportService {
     }
 
     private ExportResponse exportFBU() {
-        String respondentsBlob = respondentsBlobName("consumption");
-
-        return createJsonBlob(respondentRepository.findAllBySurveyAbbreviation("FBU"), respondentsBlob, forbrukBucketName);
+        return createJsonBlob(respondentRepository.findAllBySurveyAbbreviation("FBU"), respondentsBlobName(), forbrukBucketName);
     }
 
     private ExportResponse createJsonBlob(List<?> content, String blobName, String bucketName) {
@@ -60,8 +58,8 @@ public class ExportService {
         }
     }
 
-    private String respondentsBlobName(String prefix) {
+    private String respondentsBlobName() {
         final String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        return String.format("%s/%s/respondenter/%s/respondenter",environment, prefix, date);
+        return String.format("%s/%s/respondenter/%s/respondenter",environment, "common", date);
     }
 }
