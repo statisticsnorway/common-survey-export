@@ -12,5 +12,5 @@ This is to ensure that we don't accidentally modify data.
 
 @NoRepositoryBean
 public interface ReadOnlyRepository<T,ID> extends Repository<T, ID> {
-    List<T> findAll();
+    List<T> findAllBySurveyAbbreviation(String abbreviation);
 }

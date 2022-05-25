@@ -20,25 +20,31 @@ public class ExportService {
 
     private final RespondentRepository respondentRepository;
 
-    @Value("${storage.bucket.name}")
-    private String bucketName;
+    @Value("${storage.forbruk.bucket.name}")
+    private String forbrukBucketName;
+
+    @Value("${environment}")
+    private String environment;
 
     private static final Storage storage = StorageOptions.getDefaultInstance().getService();
 
     private static final ExportMapper mapper = ExportMapper.getInstance();
 
     public List<ExportResponse> export() {
-        final String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        final String respondentsBlob = String.format("%s/respondenter", date);
-
         List<ExportResponse> blobsCreated = new ArrayList<>();
 
-        blobsCreated.add(createJsonBlob(respondentRepository.findAll(), respondentsBlob));
+        blobsCreated.add(exportFBU());
 
         return blobsCreated;
     }
 
-    private ExportResponse createJsonBlob(List<?> content, String blobName) {
+    private ExportResponse exportFBU() {
+        String respondentsBlob = respondentsBlobName("consumption");
+
+        return createJsonBlob(respondentRepository.findAllBySurveyAbbreviation("FBU"), respondentsBlob, forbrukBucketName);
+    }
+
+    private ExportResponse createJsonBlob(List<?> content, String blobName, String bucketName) {
         final BlobId blobId = BlobId.of(bucketName, blobName);
         final BlobInfo blobInfo = BlobInfo.newBuilder(blobId).setContentType("application/json").build();
 
@@ -52,5 +58,10 @@ public class ExportService {
             log.warn("Could not process {}. {}", blobName, e.getMessage());
             return new ExportResponse(blobName, LocalDateTime.now(), "Failed to create", e.getMessage());
         }
+    }
+
+    private String respondentsBlobName(String prefix) {
+        final String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        return String.format("%s/%s/respondenter/%s/respondenter",environment, prefix, date);
     }
 }

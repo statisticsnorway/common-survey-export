@@ -22,6 +22,8 @@ spring:
     init:
       platform: postgres
 
+environment: staging
 storage:
-  bucket:
-    name: test-bucket-common-dsr
+  forbruk:
+    bucket:
+      name: ssb-staging-forbruk-survey-data-kilde
